@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GhostOut — AI Threat Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Reset & Variables ───────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #0D1B2A;
+      --navy2:     #132234;
+      --red:       #E63946;
+      --red-dark:  #B5202C;
+      --white:     #FFFFFF;
+      --offwhite:  #F0F4F8;
+      --gray:      #8D99AE;
+      --gray-light:#CDD5DF;
+      --green:     #02C39A;
+      --yellow:    #FFB703;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius:    12px;
+      --shadow:    0 4px 24px rgba(0,0,0,0.18);
+    }
+
+    body {
+      background: var(--navy);
+      color: var(--white);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background grid ────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(230,57,70,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(230,57,70,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ──────────────────────────── */
+    .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Header ──────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(13,27,42,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(230,57,70,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: var(--red);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 0 20px rgba(230,57,70,0.5);
+      animation: pulse 2.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(230,57,70,0.5); }
+      50%       { box-shadow: 0 0 35px rgba(230,57,70,0.8); }
+    }
+
+    .nav-pills { display: flex; gap: 0.5rem; }
+    .nav-pill {
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      background: transparent;
+      color: var(--gray);
+    }
+    .nav-pill:hover, .nav-pill.active {
+      background: rgba(230,57,70,0.15);
+      border-color: var(--red);
+      color: var(--white);
+    }
+
+    /* ── Main ────────────────────────────── */
+    main { flex: 1; padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ── Hero stats bar ──────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background: var(--navy2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: rgba(230,57,70,0.3); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--red);
+    }
+    .stat-num { font-family: var(--font-head); font-size: 2rem; font-weight: 800; color: var(--red); }
+    .stat-label { font-size: 0.8rem; color: var(--gray); margin-top: 0.3rem; }
+
+    /* ── Grid layout ─────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-top: 1.5rem; }
+
+    /* ── Cards ───────────────────────────── */
+    .card {
+      background: var(--navy2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title span { color: var(--red); }
+
+    /* ── Input section ───────────────────── */
+    .input-group { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem; }
+
+    label { font-size: 0.82rem; color: var(--gray); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    input, textarea, select {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      transition: border-color 0.2s, background 0.2s;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--red);
+      background: rgba(230,57,70,0.06);
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    select option { background: var(--navy2); }
+
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+    /* ── Buttons ─────────────────────────── */
+    .btn {
+      padding: 0.75rem 1.8rem;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-primary {
+      background: var(--red);
+      color: var(--white);
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(230,57,70,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--gray);
+      font-size: 0.8rem;
+      padding: 0.4rem 0.9rem;
+    }
+    .btn-outline:hover { border-color: var(--red); color: var(--white); }
+
+    /* ── Loading spinner ─────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Threat Score Display ────────────── */
+    .score-display {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+    .score-display.visible { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .threat-meter {
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+      margin: 1rem 0 0.4rem;
+    }
+
+    .threat-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+      width: 0%;
+    }
+
+    .score-big {
+      font-family: var(--font-head);
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .level-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: var(--font-head);
+      margin-top: 0.5rem;
+    }
+
+    .level-safe     { background: rgba(2,195,154,0.15); color: var(--green); border: 1px solid rgba(2,195,154,0.3); }
+    .level-suspicious { background: rgba(255,183,3,0.15); color: var(--yellow); border: 1px solid rgba(255,183,3,0.3); }
+    .level-dangerous  { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
+
+    /* ── Engine Scores ───────────────────── */
+    .engine-scores { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.2rem; }
+
+    .engine-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .engine-label { width: 130px; color: var(--gray); flex-shrink: 0; }
+
+    .engine-bar {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .engine-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(.4,0,.2,1) 0.2s;
+      width: 0%;
+    }
+
+    .engine-score-num { width: 36px; text-align: right; font-weight: 600; font-size: 0.82rem; }
+
+    /* ── Red Flags ───────────────────────── */
+    .red-flags { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+
+    .flag-item {
+      background: rgba(230,57,70,0.08);
+      border: 1px solid rgba(230,57,70,0.2);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.84rem;
+      color: var(--offwhite);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Actions ─────────────────────────── */
+    .action-items { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.86rem;
+      color: var(--offwhite);
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .action-item:last-child { border-bottom: none; }
+    .action-num {
+      width: 22px; height: 22px;
+      background: var(--red);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Recent checks table ─────────────── */
+    .table { width: 100%; border-collapse: collapse; }
+    .table th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--gray);
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-weight: 500;
+    }
+    .table td {
+      padding: 0.75rem 0.8rem;
+      font-size: 0.86rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--offwhite);
+    }
+    .table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .score-pill {
+      display: inline-block;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .pill-safe { background: rgba(2,195,154,0.15); color: var(--green); }
+    .pill-warn { background: rgba(255,183,3,0.15); color: var(--yellow); }
+    .pill-danger { background: rgba(230,57,70,0.15); color: var(--red); }
+
+    /* ── Empty state ─────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--gray);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── Error / success toast ───────────── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--navy2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      font-size: 0.88rem;
+      box-shadow: var(--shadow);
+      z-index: 999;
+      display: none;
+      animation: slideUp 0.3s ease;
+    }
+    .toast.show { display: block; }
+    .toast.error { border-color: var(--red); }
+    .toast.success { border-color: var(--green); }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── DB Check tab ────────────────────── */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Responsive ──────────────────────── */
+    @media (max-width: 768px) {
+      main { padding: 1.2rem; }
+      .stats-bar { grid-template-columns: repeat(2,1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .input-row { grid-template-columns: 1fr; }
+      header { padding: 1rem 1.2rem; }
+      .nav-pills { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ─────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">👻</div>
+      GhostOut
+    </div>
+    <nav class="nav-pills">
+      <button class="nav-pill active" onclick="showTab('analyze')">Analyze Threat</button>
+      <button class="nav-pill" onclick="showTab('report')">Report Account</button>
+      <button class="nav-pill" onclick="showTab('check')">Check DB</button>
+    </nav>
+    <div style="font-size:0.8rem; color:var(--gray);">
+      🟢 <span id="api-status">All engines online</span>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────── -->
+  <main>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="total-checks">0</div>
+        <div class="stat-label">Accounts analyzed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="total-threats" style="color:var(--red)">0</div>
+        <div class="stat-label">Threats detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="total-reports" style="color:var(--yellow)">0</div>
+        <div class="stat-label">Community reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)">87%</div>
+        <div class="stat-label">Detection accuracy</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 1: Analyze Threat ═════════ -->
+    <div class="tab-content active" id="tab-analyze">
+      <div class="grid-2">
+
+        <!-- Left: Input form -->
+        <div class="card">
+          <div class="card-title">🎯 <span>Threat Analysis</span></div>
+
+          <div class="input-group">
+            <label>Suspicious Message</label>
+            <textarea id="msg-input" placeholder="Paste the threatening or suspicious message here..."></textarea>
+          </div>
+
+          <div class="input-row">
+            <div class="input-group">
+              <label>Username / Account ID</label>
+              <input type="text" id="uid-input" placeholder="e.g. suspicious_user123"/>
+            </div>
+            <div class="input-group">
+              <label>Platform</label>
+              <select id="platform-input">
+                <option value="instagram">Instagram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="facebook">Facebook</option>
+                <option value="telegram">Telegram</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="input-group">
+              <label>Account Age (days)</label>
+              <input type="number" id="age-input" placeholder="e.g. 3" min="0"/>
+            </div>
+            <div class="input-group">
+              <label>Followers</label>
+              <input type="number" id="followers-input" placeholder="e.g. 12" min="0"/>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="input-group">
+              <label>Following</label>
+              <input type="number" id="following-input" placeholder="e.g. 8000" min="0"/>
+            </div>
+            <div class="input-group">
+              <label>Post Count</label>
+              <input type="number" id="posts-input" placeholder="e.g. 0" min="0"/>
+            </div>
+          </div>
+
+          <div class="input-row" style="margin-top:0.4rem">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;text-transform:none;font-size:0.88rem;">
+              <input type="checkbox" id="pic-input" checked style="width:auto;accent-color:var(--red)"/>
+              Has profile picture
+            </label>
+          </div>
+
+          <button class="btn btn-primary" id="analyze-btn" onclick="analyzeThrea()">
+            🔍 Analyze Threat
+          </button>
+        </div>
+
+        <!-- Right: Results -->
+        <div class="card">
+          <div class="card-title">📊 <span>Threat Report</span></div>
+
+          <!-- Empty state -->
+          <div class="empty-state" id="empty-state">
+            <div class="icon">🛡️</div>
+            <p>Submit an account to see the threat analysis report here.</p>
+          </div>
+
+          <!-- Score display -->
+          <div class="score-display" id="score-display">
+
+            <div style="display:flex; align-items:flex-end; gap:1rem;">
+              <div>
+                <div style="font-size:0.75rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Master Threat Score</div>
+                <div class="score-big" id="score-num">0</div>
+                <div style="font-size:0.75rem;color:var(--gray)">/100</div>
+              </div>
+              <div>
+                <div class="level-badge" id="level-badge">—</div>
+                <div style="font-size:0.75rem;color:var(--gray);margin-top:0.5rem;" id="platform-tag"></div>
+              </div>
+            </div>
+
+            <div class="threat-meter">
+              <div class="threat-fill" id="threat-fill"></div>
+            </div>
+
+            <!-- Engine breakdown -->
+            <div style="font-size:0.75rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-top:1.2rem;margin-bottom:0.2rem;">Engine Breakdown</div>
+            <div class="engine-scores">
+              <div class="engine-row">
+                <span class="engine-label">⚡ NLP Engine</span>
+                <div class="engine-bar"><div class="engine-fill" id="nlp-fill" style="background:var(--red)"></div></div>
+                <span class="engine-score-num" id="nlp-num">0</span>
+              </div>
+              <div class="engine-row">
+                <span class="engine-label">🕸️ Bot Score</span>
+                <div class="engine-bar"><div class="engine-fill" id="bot-fill" style="background:var(--yellow)"></div></div>
+                <span class="engine-score-num" id="bot-num">0</span>
+              </div>
+              <div class="engine-row">
+                <span class="engine-label">🔒 Predator DB</span>
+                <div class="engine-bar"><div class="engine-fill" id="db-fill" style="background:var(--green)"></div></div>
+                <span class="engine-score-num" id="db-num">0</span>
+              </div>
+            </div>
+
+            <!-- Red Flags -->
+            <div id="flags-section" style="display:none">
+              <div style="font-size:0.75rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-top:1.2rem;margin-bottom:0.2rem;">⚠️ Red Flags</div>
+              <div class="red-flags" id="flags-list"></div>
+            </div>
+
+            <!-- Recommended Actions -->
+            <div id="actions-section" style="display:none">
+              <div style="font-size:0.75rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-top:1.2rem;margin-bottom:0.2rem;">✅ Recommended Actions</div>
+              <div class="action-items" id="actions-list"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Checks Table -->
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-title" style="justify-content:space-between">
+          <span>🕐 Recent <span>Analyses</span></span>
+          <button class="btn btn-outline" onclick="clearHistory()">Clear</button>
+        </div>
+        <div id="history-empty" class="empty-state" style="padding:2rem">
+          <div class="icon">📋</div>
+          <p>No analyses yet</p>
+        </div>
+        <table class="table" id="history-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Platform</th>
+              <th>Master Score</th>
+              <th>Threat Level</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ TAB 2: Report Account ══════════ -->
+    <div class="tab-content" id="tab-report">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🚨 <span>Report a Predator</span></div>
+          <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1.2rem;">Your identity is fully protected. All reports are anonymously hashed.</p>
+
+          <div class="input-group">
+            <label>Predator's Username</label>
+            <input type="text" id="rep-uid" placeholder="e.g. fake_account_999"/>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Platform</label>
+              <select id="rep-platform">
+                <option value="instagram">Instagram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="facebook">Facebook</option>
+                <option value="telegram">Telegram</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Incident Type</label>
+              <select id="rep-type">
+                <option value="harassment">Harassment</option>
+                <option value="stalking">Stalking</option>
+                <option value="threats">Threats</option>
+                <option value="grooming">Grooming</option>
+                <option value="fake_profile">Fake Profile</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>What happened?</label>
+            <textarea id="rep-desc" placeholder="Describe the incident. This is kept private and helps protect others."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Your Anonymous ID (optional)</label>
+            <input type="text" id="rep-reporter" placeholder="Any string — this gets hashed for privacy" value="anonymous_user"/>
+          </div>
+          <button class="btn btn-primary" onclick="reportAccount()">🚨 Submit Report Anonymously</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🔒 <span>How Reporting Works</span></div>
+          <div class="action-items">
+            <div class="action-item"><div class="action-num">1</div>Your report is received and your identity is immediately hashed with SHA-256</div>
+            <div class="action-item"><div class="action-num">2</div>The predator's account ID is also hashed — raw usernames are never stored</div>
+            <div class="action-item"><div class="action-num">3</div>When 3+ women report the same account, it gets flagged as a known predator</div>
+            <div class="action-item"><div class="action-num">4</div>All future threat scans automatically check against this community database</div>
+            <div class="action-item"><div class="action-num">5</div>You can request an evidence package for cybercrime.gov.in filing</div>
+          </div>
+          <div id="report-result" style="display:none;margin-top:1rem"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 3: Check DB ════════════════ -->
+    <div class="tab-content" id="tab-check">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🔍 <span>Check Predator Database</span></div>
+          <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1.2rem;">Check if an account has been flagged by the community.</p>
+          <div class="input-group">
+            <label>Username to Check</label>
+            <input type="text" id="chk-uid" placeholder="Enter the account username"/>
+          </div>
+          <div class="input-group">
+            <label>Platform</label>
+            <select id="chk-platform">
+              <option value="instagram">Instagram</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="twitter">Twitter / X</option>
+              <option value="facebook">Facebook</option>
+              <option value="telegram">Telegram</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="checkDB()">🔍 Check Database</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 <span>Database Result</span></div>
+          <div class="empty-state" id="db-empty">
+            <div class="icon">🔒</div>
+            <p>Enter an account to check the predator database.</p>
+          </div>
+          <div id="db-result" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ── JavaScript ──────────────────────── -->
+<script>
+  // ── Config ──────────────────────────────
+  const API = {
+    master:    'http://127.0.0.1:8003',
+    predatorDB:'http://127.0.0.1:8002',
+  };
+
+  // ── Local state ─────────────────────────
+  let history = JSON.parse(localStorage.getItem('ghostout_history') || '[]');
+  let stats = JSON.parse(localStorage.getItem('ghostout_stats') || '{"checks":0,"threats":0,"reports":0}');
+
+  // ── Init ────────────────────────────────
+  updateStats();
+  renderHistory();
+  checkEngineStatus();
+
+  // ── Tab switching ────────────────────────
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // ── Engine status check ──────────────────
+  async function checkEngineStatus() {
+    try {
+      const r = await fetch(API.master + '/health', { signal: AbortSignal.timeout(3000) });
+      if (r.ok) {
+        document.getElementById('api-status').textContent = 'All engines online';
+      }
+    } catch {
+      document.getElementById('api-status').textContent = '⚠️ Check server';
+      document.getElementById('api-status').style.color = 'var(--yellow)';
+    }
+  }
+
+  // ── Main Threat Analysis ─────────────────
+  async function analyzeThrea() {
+    const msg      = document.getElementById('msg-input').value.trim();
+    const uid      = document.getElementById('uid-input').value.trim();
+    const platform = document.getElementById('platform-input').value;
+    const age      = parseInt(document.getElementById('age-input').value) || 30;
+    const followers= parseInt(document.getElementById('followers-input').value) || 0;
+    const following= parseInt(document.getElementById('following-input').value) || 0;
+    const posts    = parseInt(document.getElementById('posts-input').value) || 0;
+    const hasPic   = document.getElementById('pic-input').checked;
+
+    if (!uid) { showToast('⚠️ Please enter a username', 'error'); return; }
+    if (!msg) { showToast('⚠️ Please enter a message to analyze', 'error'); return; }
+
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+    try {
+      const res = await fetch(API.master + '/analyze-threat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          platform,
+          account_age_days: age,
+          followers,
+          following,
+          post_count: posts,
+          profile_pic: hasPic,
+          bio: '',
+          message: msg,
+          chat_history: []
+        })
+      });
+
+      if (!res.ok) throw new Error('API error: ' + res.status);
+      const data = await res.json();
+      renderResults(data, uid, platform);
+
+      // Update stats
+      stats.checks++;
+      if (data.master_threat_score > 60) stats.threats++;
+      saveStats();
+      updateStats();
+
+      // Add to history
+      history.unshift({
+        uid, platform,
+        score: data.master_threat_score,
+        level: data.master_threat_level,
+        time: new Date().toLocaleTimeString()
+      });
+      if (history.length > 20) history.pop();
+      localStorage.setItem('ghostout_history', JSON.stringify(history));
+      renderHistory();
+
+    } catch (err) {
+      showToast('❌ Could not connect to GhostOut API. Make sure all 4 servers are running!', 'error');
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Analyze Threat';
+    }
+  }
+
+  // ── Render Results ───────────────────────
+  function renderResults(data, uid, platform) {
+    document.getElementById('empty-state').style.display = 'none';
+    const display = document.getElementById('score-display');
+    display.classList.add('visible');
+
+    const score = data.master_threat_score;
+    const level = data.master_threat_level;
+
+    // Score number (animated count-up)
+    animateNumber('score-num', 0, Math.round(score), 800);
+
+    // Threat meter fill
+    setTimeout(() => {
+      const fill = document.getElementById('threat-fill');
+      fill.style.width = score + '%';
+      fill.style.background = score > 65 ? 'var(--red)' : score > 30 ? 'var(--yellow)' : 'var(--green)';
+    }, 100);
+
+    // Level badge
+    const badge = document.getElementById('level-badge');
+    badge.textContent = level;
+    badge.className = 'level-badge';
+    if (score > 65)      badge.classList.add('level-dangerous');
+    else if (score > 30) badge.classList.add('level-suspicious');
+    else                 badge.classList.add('level-safe');
+
+    // Platform tag
+    document.getElementById('platform-tag').textContent = `@${uid} on ${platform}`;
+
+    // Engine bars
+    setTimeout(() => {
+      setEngineBar('nlp', data.nlp_threat_score);
+      setEngineBar('bot', data.bot_score);
+      const dbScore = Math.min(data.predator_db_reports * 25, 100);
+      setEngineBar('db', dbScore);
+    }, 200);
+
+    // Red flags
+    const flags = data.red_flags || [];
+    const flagsSec = document.getElementById('flags-section');
+    const flagsList = document.getElementById('flags-list');
+    if (flags.length > 0) {
+      flagsSec.style.display = 'block';
+      flagsList.innerHTML = flags.map((f,i) =>
+        `<div class="flag-item" style="animation-delay:${i*0.07}s">${f}</div>`
+      ).join('');
+    } else {
+      flagsSec.style.display = 'none';
+    }
+
+    // Actions
+    const actions = data.recommended_actions || [];
+    const actionsSec = document.getElementById('actions-section');
+    const actionsList = document.getElementById('actions-list');
+    if (actions.length > 0) {
+      actionsSec.style.display = 'block';
+      actionsList.innerHTML = actions.map((a, i) =>
+        `<div class="action-item"><div class="action-num">${i+1}</div>${a}</div>`
+      ).join('');
+    } else {
+      actionsSec.style.display = 'none';
+    }
+
+    showToast(`✅ Analysis complete — Score: ${Math.round(score)}/100`, score > 65 ? 'error' : 'success');
+  }
+
+  function setEngineBar(id, score) {
+    document.getElementById(id + '-fill').style.width = score + '%';
+    document.getElementById(id + '-num').textContent = Math.round(score);
+  }
+
+  function animateNumber(id, from, to, duration) {
+    const el = document.getElementById(id);
+    const step = (to - from) / (duration / 16);
+    let cur = from;
+    const timer = setInterval(() => {
+      cur += step;
+      if (cur >= to) { cur = to; clearInterval(timer); }
+      el.textContent = Math.round(cur);
+    }, 16);
+  }
+
+  // ── Report Account ───────────────────────
+  async function reportAccount() {
+    const uid      = document.getElementById('rep-uid').value.trim();
+    const platform = document.getElementById('rep-platform').value;
+    const type     = document.getElementById('rep-type').value;
+    const desc     = document.getElementById('rep-desc').value.trim();
+    const reporter = document.getElementById('rep-reporter').value.trim() || 'anonymous';
+
+    if (!uid || !desc) { showToast('⚠️ Please fill all required fields', 'error'); return; }
+
+    try {
+      const res = await fetch(API.predatorDB + '/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          predator_user_id: uid,
+          platform,
+          reporter_id: reporter,
+          incident_type: type,
+          description: desc,
+          evidence_urls: []
+        })
+      });
+      const data = await res.json();
+
+      const result = document.getElementById('report-result');
+      result.style.display = 'block';
+      result.innerHTML = `
+        <div class="flag-item" style="border-color:var(--green);background:rgba(2,195,154,0.08)">
+          ✅ ${data.message}<br/>
+          <small style="color:var(--gray)">Total reports: ${data.total_reports_against} · ${data.danger_level}</small>
+        </div>`;
+
+      stats.reports++;
+      saveStats();
+      updateStats();
+      showToast('✅ Report submitted anonymously', 'success');
+
+    } catch (err) {
+      showToast('❌ Could not submit report. Check if server is running on port 8002.', 'error');
+    }
+  }
+
+  // ── Check DB ─────────────────────────────
+  async function checkDB() {
+    const uid      = document.getElementById('chk-uid').value.trim();
+    const platform = document.getElementById('chk-platform').value;
+    if (!uid) { showToast('⚠️ Enter a username to check', 'error'); return; }
+
+    try {
+      const res = await fetch(API.predatorDB + '/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid, platform })
+      });
+      const data = await res.json();
+
+      document.getElementById('db-empty').style.display = 'none';
+      const result = document.getElementById('db-result');
+      result.style.display = 'block';
+
+      const isRed = data.is_flagged && data.total_reports > 2;
+      result.innerHTML = `
+        <div style="margin-bottom:1rem">
+          <div class="score-big" style="font-size:2rem;color:${data.is_flagged ? 'var(--red)' : 'var(--green)'}">
+            ${data.is_flagged ? '🚨 FLAGGED' : '✅ NOT FLAGGED'}
+          </div>
+          <div class="level-badge ${isRed ? 'level-dangerous' : data.is_flagged ? 'level-suspicious' : 'level-safe'}" style="margin-top:0.5rem">
+            ${data.danger_level}
+          </div>
+        </div>
+        <div class="engine-scores">
+          <div class="action-item"><div class="action-num">#</div>Total reports: <b>${data.total_reports}</b></div>
+          ${data.incident_types?.length ? `<div class="action-item"><div class="action-num">!</div>Incident types: ${data.incident_types.join(', ')}</div>` : ''}
+          ${data.first_reported ? `<div class="action-item"><div class="action-num">📅</div>First reported: ${data.first_reported?.slice(0,10)}</div>` : ''}
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(255,255,255,0.04);border-radius:8px;font-size:0.85rem;color:var(--offwhite)">
+          ${data.recommended_action}
+        </div>`;
+
+    } catch (err) {
+      showToast('❌ Could not check database. Is the predator DB server running on port 8002?', 'error');
+    }
+  }
+
+  // ── History ──────────────────────────────
+  function renderHistory() {
+    const body  = document.getElementById('history-body');
+    const table = document.getElementById('history-table');
+    const empty = document.getElementById('history-empty');
+
+    if (history.length === 0) {
+      table.style.display = 'none';
+      empty.style.display = 'flex';
+      return;
+    }
+
+    table.style.display = 'table';
+    empty.style.display = 'none';
+
+    body.innerHTML = history.map(h => {
+      const cls = h.score > 65 ? 'pill-danger' : h.score > 30 ? 'pill-warn' : 'pill-safe';
+      return `<tr>
+        <td><b>${h.uid}</b></td>
+        <td>${h.platform}</td>
+        <td><span class="score-pill ${cls}">${Math.round(h.score)}/100</span></td>
+        <td>${h.level}</td>
+        <td style="color:var(--gray)">${h.time}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function clearHistory() {
+    history = [];
+    localStorage.removeItem('ghostout_history');
+    renderHistory();
+  }
+
+  // ── Stats ────────────────────────────────
+  function updateStats() {
+    document.getElementById('total-checks').textContent  = stats.checks;
+    document.getElementById('total-threats').textContent = stats.threats;
+    document.getElementById('total-reports').textContent = stats.reports;
+  }
+
+  function saveStats() { localStorage.setItem('ghostout_stats', JSON.stringify(stats)); }
+
+  // ── Toast ────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 3500);
+  }
+</script>
+</body>
+</html>

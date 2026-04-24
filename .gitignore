@@ -1,0 +1,14 @@
+# Environment variables - NEVER upload to GitHub
+.env
+
+# Python cache files
+_pycache_/
+*.pyc
+*.pyo
+
+# VS Code settings
+.vscode/
+
+# Neo4j credentials
+*.txt
+neo4j_credentials.txt
