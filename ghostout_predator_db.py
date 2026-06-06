@@ -12,7 +12,7 @@
 # ============================================================
 
 from fastapi import FastAPI, HTTPException
-from fasapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from tinydb import TinyDB, Query
 from typing import List, Optional
