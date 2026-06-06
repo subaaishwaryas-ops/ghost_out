@@ -12,3 +12,4 @@ _pycache_/
 # Neo4j credentials
 *.txt
 neo4j_credentials.txt
+!requirements.txt
